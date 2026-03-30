@@ -10,21 +10,20 @@ struct ContentView: View {
         TodoItemModel(title: "Create demo", text: "Is the Demo", category: .work),
         TodoItemModel(title: "Buy milk", text: "Buy Arla Milk 1L", category: .shopping),
         TodoItemModel(title: "Finish project", text: "Finish iOS project", category: .work, isDone: true)
-    ] // place holder Items for the list
+    ] // placeholder items for the list to show that there is items to display
     
-    @State private var selectedCategory: TodoCategory? = nil
+    @State private var selectedCategories: Set<TodoCategory> = []
     @State private var showingCreateView = false
     
     @State private var showingDeleteAlert = false
     @State private var selectedTodoForDelete: TodoItemModel?
     @State private var editingTodo: TodoItemModel?
     
-    // function for filtering the Items by category
     var filteredTodos: [TodoItemModel] {
-        if let selectedCategory {
-            return todos.filter { $0.category == selectedCategory }
-        } else {
+        if selectedCategories.isEmpty {
             return todos
+        } else {
+            return todos.filter { selectedCategories.contains($0.category) }
         }
     }
     
@@ -33,14 +32,14 @@ struct ContentView: View {
             ZStack {
                 Color.orange.ignoresSafeArea()
                 
-                ScrollView { // For all the items in the list
+                ScrollView {
                     VStack(spacing: 6) {
                         
                         ForEach(filteredTodos) { todoItem in
                             
                             HStack(alignment: .top) {
                                 
-                                Image(systemName: todoItem.isDone ? "checkmark.square" : "square")
+                                Image(systemName: todoItem.isDone ? "checkmark.square" : "square") // if somehting is done then add checkmark to the box
                                     .foregroundColor(.orange)
                                     .onTapGesture {
                                         if !todoItem.isDone {
@@ -67,12 +66,12 @@ struct ContentView: View {
                                 .strikethrough(todoItem.isDone)
                                 
                                 Spacer()
-                                 // if the todo is complete gives user a chance to either delete the instance or keep it
-                                if todoItem.isDone {
+                                
+                                if todoItem.isDone { // button will only be displayed if the task is done
                                     Button {
                                         deleteTodo(todoItem)
                                     } label: {
-                                        Image(systemName: "trash") //pops up opnly when soemthing is done
+                                        Image(systemName: "trash")
                                             .foregroundColor(.red)
                                     }
                                 }
@@ -94,21 +93,38 @@ struct ContentView: View {
             
             .toolbar {
                 
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) { // in the navigation bar display a menu
                     Menu {
-                        Button("All") { selectedCategory = nil }
+                        
+                        Button("All") {
+                            selectedCategories.removeAll()
+                        }
+                        
                         ForEach(TodoCategory.allCases) { category in
-                            Button(category.rawValue) {
-                                selectedCategory = category
+                            Button {
+                                if selectedCategories.contains(category) {
+                                    selectedCategories.remove(category)
+                                } else {
+                                    selectedCategories.insert(category)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(category.rawValue)
+                                    
+                                    if selectedCategories.contains(category) {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
                             }
                         }
+                        
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Image(systemName: "line.3.horizontal.decrease.circle") // the task will get a line across if the task is done
                             .foregroundColor(.white)
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) { // in the navigation bar add a task
                     Button {
                         showingCreateView = true
                     } label: {
@@ -118,28 +134,28 @@ struct ContentView: View {
                 }
             }
             
-            .sheet(isPresented: $showingCreateView) { // instead of a new view then a sheet pops up
+            .sheet(isPresented: $showingCreateView) { // sheet popsup where user can add a new todo
                 CreateTodoView { newTodo in
-                    todos.append(newTodo)
+                    todos.append(newTodo) // new todo will be added att the bottom of the list
                 }
             }
             
-            .sheet(item: $editingTodo) { todo in
+            .sheet(item: $editingTodo) { todo in // sheet pops up if a user needs to edit the todo ex catagory, text or title
                 EditTodoView(todo: todo) { updated in
                     if let index = todos.firstIndex(where: { $0.id == updated.id }) {
-                        todos[index] = updated
+                        todos[index] = updated // todo will not be appended to the end but instead keep its place in the list
                     }
                 }
             }
-            //alert for when something is done gives option to delete
-            .alert("Mark as done?", isPresented: $showingDeleteAlert) {
-                Button("Yes, delete", role: .destructive) {
+            
+            .alert("Mark as done?", isPresented: $showingDeleteAlert) { // when something is done then there will be an alert
+                Button("Yes, delete", role: .destructive) { // ask user if the task is done if they want to delete
                     if let todo = selectedTodoForDelete {
                         deleteTodo(todo)
                     }
                 }
                 
-                Button("No") {
+                Button("No") { // if user picks No then it will be marked as done but not deleted of the list
                     if let todo = selectedTodoForDelete,
                        let index = todos.firstIndex(where: { $0.id == todo.id }) {
                         todos[index].isDone = true
@@ -149,7 +165,7 @@ struct ContentView: View {
         }
     }
     
-    func deleteTodo(_ todo: TodoItemModel) {
+    func deleteTodo(_ todo: TodoItemModel) { // remove the entire item when user presses delete or if they want to delete after the task is done
         todos.removeAll { $0.id == todo.id }
     }
 }
