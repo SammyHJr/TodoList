@@ -59,7 +59,7 @@ struct EditTodoView: View {
                     
                     Spacer()
                     
-                    Picker("", selection: $todo.category) {
+                    Picker("", selection: $todo.category) {  // pick the catagory in which the todo will be subscribed to
                         ForEach(TodoCategory.allCases) { category in
                             Text(category.rawValue)
                                 .tag(category)
